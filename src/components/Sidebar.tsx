@@ -1,3 +1,4 @@
+import React from 'react';
 import { GitBranch, Keyboard, LifeBuoy, Mic, Network, ShoppingCart, UserPlus, type LucideIcon } from 'lucide-react';
 import { Flo } from './Flo';
 import { PRESET_SYSTEMS } from '../data/presets';
@@ -14,8 +15,6 @@ const TEMPLATES: { title: string; icon: LucideIcon; prompt: string }[] = [
 interface SidebarProps {
   history: HistoryEntry[];
   activeId: string;
-  onTalk: () => void;
-  onType: () => void;
   onRunPrompt: (prompt: string) => void;
   onLoadSystem: (system: ArchitectureSystem) => void;
   onClearHistory: () => void;
@@ -30,37 +29,9 @@ function SectionTitle({ children, action }: { children: React.ReactNode; action?
   );
 }
 
-export function Sidebar({ history, activeId, onTalk, onType, onRunPrompt, onLoadSystem, onClearHistory }: SidebarProps) {
+export function Sidebar({ history, activeId, onRunPrompt, onLoadSystem, onClearHistory }: SidebarProps) {
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
-      {/* Primary actions */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <button
-          onClick={onTalk}
-          className="group relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border border-accent-500/30 bg-accent-500/10 px-3 pb-3.5 pt-4 text-center transition-colors hover:border-accent-400/60 hover:bg-accent-500/15"
-        >
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-500 text-white shadow-[0_8px_24px_-6px_rgba(139,116,248,0.7)] transition-transform group-hover:scale-105">
-            <Mic className="h-5 w-5" />
-          </div>
-          <span className="text-xs font-semibold leading-tight text-ink-100">
-            Talk to Flo
-            <span className="block font-medium text-ink-400">with Wispr Flow</span>
-          </span>
-        </button>
-        <button
-          onClick={onType}
-          className="group flex flex-col items-center gap-2 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 pb-3.5 pt-4 text-center transition-colors hover:border-white/15 hover:bg-white/[0.05]"
-        >
-          <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-ink-850 text-ink-200 transition-transform group-hover:scale-105">
-            <Keyboard className="h-5 w-5" />
-          </div>
-          <span className="text-xs font-semibold leading-tight text-ink-100">
-            Type it
-            <span className="block font-medium text-ink-400">press /</span>
-          </span>
-        </button>
-      </div>
-
       {/* Templates */}
       <section>
         <SectionTitle>Start from a template</SectionTitle>

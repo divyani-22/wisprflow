@@ -103,7 +103,6 @@ export function App() {
   });
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const commandRef = useRef<HTMLInputElement | null>(null);
 
   const notify = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
 
@@ -113,17 +112,17 @@ export function App() {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  // "/" jumps to the command bar
+  // Cmd/Ctrl+K opens voice session
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === '/' && !isTyping(document.activeElement) && !voiceOpen) {
+      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) && !isTyping(document.activeElement)) {
         e.preventDefault();
-        commandRef.current?.focus();
+        setVoiceOpen((o) => !o);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [voiceOpen]);
+  }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedNode(null);
@@ -299,8 +298,6 @@ export function App() {
     <div className="ambient flex h-screen w-screen flex-col overflow-hidden text-ink-100">
       <Header
         flowName={currentSystem.name}
-        commandRef={commandRef}
-        onCommand={(t) => runCommand(t, 'text')}
         onToggleSidebar={() => setSidebarOpen((o) => !o)}
         onReset={handleReset}
         onExportPng={handleExportPng}
@@ -329,11 +326,6 @@ export function App() {
             <Sidebar
               history={history}
               activeId={currentSystem.id}
-              onTalk={openVoice}
-              onType={() => {
-                setSidebarOpen(false);
-                commandRef.current?.focus();
-              }}
               onRunPrompt={(p) => runCommand(p, 'text')}
               onLoadSystem={loadSystem}
               onClearHistory={() => setHistory(saveHistory([]))}

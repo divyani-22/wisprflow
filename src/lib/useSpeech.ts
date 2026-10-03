@@ -42,6 +42,8 @@ export function useSpeech({ onFinal, levelRef }: UseSpeechOptions) {
   const audioRef = useRef<AudioContext | null>(null);
   const frameRef = useRef(0);
   const onFinalRef = useRef(onFinal);
+  const lastInterimRef = useRef('');
+
   useEffect(() => {
     onFinalRef.current = onFinal;
   }, [onFinal]);
@@ -80,7 +82,16 @@ export function useSpeech({ onFinal, levelRef }: UseSpeechOptions) {
   }, [levelRef]);
 
   const stop = useCallback(() => {
-    recRef.current?.stop();
+    if (lastInterimRef.current) {
+      onFinalRef.current(lastInterimRef.current);
+      lastInterimRef.current = '';
+    }
+    setInterim('');
+    try {
+      recRef.current?.stop();
+    } catch {
+      // ignore
+    }
   }, []);
 
   const start = useCallback(() => {
@@ -95,16 +106,30 @@ export function useSpeech({ onFinal, levelRef }: UseSpeechOptions) {
       let live = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
-        if (r.isFinal) onFinalRef.current(r[0].transcript.trim());
-        else live += r[0].transcript;
+        if (r.isFinal) {
+          const finalChunk = r[0].transcript.trim();
+          if (finalChunk) {
+            lastInterimRef.current = '';
+            onFinalRef.current(finalChunk);
+          }
+        } else {
+          live += r[0].transcript;
+        }
       }
+      lastInterimRef.current = live.trim();
       setInterim(live);
     };
+
     rec.onerror = (e) => {
       if (e.error === 'not-allowed') setError('Microphone access was blocked.');
       else if (e.error !== 'no-speech' && e.error !== 'aborted') setError('Speech recognition stopped unexpectedly.');
     };
+
     rec.onend = () => {
+      if (lastInterimRef.current) {
+        onFinalRef.current(lastInterimRef.current);
+        lastInterimRef.current = '';
+      }
       recRef.current = null;
       setListening(false);
       setInterim('');
@@ -113,13 +138,21 @@ export function useSpeech({ onFinal, levelRef }: UseSpeechOptions) {
 
     setError(null);
     recRef.current = rec;
-    rec.start();
-    setListening(true);
-    startMeter();
+    try {
+      rec.start();
+      setListening(true);
+      startMeter();
+    } catch {
+      recRef.current = null;
+    }
   }, [startMeter, stopMeter]);
 
   useEffect(
     () => () => {
+      if (lastInterimRef.current) {
+        onFinalRef.current(lastInterimRef.current);
+        lastInterimRef.current = '';
+      }
       recRef.current?.stop();
       stopMeter();
     },

@@ -10,8 +10,9 @@ interface VoiceSessionProps {
 }
 
 const EXAMPLES = [
+  'Open the door, switch on the light, sit on the sofa, and then switch on the TV',
   'User signs up, verifies email, completes onboarding, lands on dashboard',
-  'Customer opens ticket, AI bot triages it, agent replies, ticket closed',
+  'Product page, add to cart, checkout, payment, confirmation email',
 ];
 
 export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
@@ -29,6 +30,14 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
 
   const speech = useSpeech({ onFinal: appendFinal, levelRef });
 
+  // Auto-start microphone when opening voice session if supported
+  useEffect(() => {
+    textareaRef.current?.focus();
+    if (speech.supported && !speech.listening) {
+      speech.start();
+    }
+  }, []);
+
   // Let the orb settle back down after a burst of typed / dictated text
   useEffect(() => {
     let frame = 0;
@@ -40,18 +49,18 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
     return () => cancelAnimationFrame(frame);
   }, [speech.listening]);
 
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+  const interimClean = speech.interim.trim();
+  const currentValue = (text ? `${text.trim()} ${interimClean}` : interimClean).trim();
+  const hasContent = !!currentValue;
 
   const submit = useCallback(() => {
-    const value = text.trim();
+    const value = (text ? `${text.trim()} ${speech.interim.trim()}` : speech.interim.trim()).trim();
     if (!value || thinking) return;
     speech.stop();
     setThinking(true);
-    // A short beat so the hand-off from "listening" to "building" is visible
-    window.setTimeout(() => onSubmit(value, usedMicRef.current ? 'voice' : 'text'), 550);
-  }, [text, thinking, speech, onSubmit]);
+    // Short beat so the transition from "listening" to "drawing" is smooth
+    window.setTimeout(() => onSubmit(value, usedMicRef.current || speech.listening ? 'voice' : 'text'), 400);
+  }, [text, speech, thinking, onSubmit]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,12 +78,12 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [text, speech.interim]);
 
-  const mood: FloMood = thinking ? 'thinking' : speech.listening ? 'listening' : 'idle';
+  const mood: FloMood = thinking ? 'thinking' : speech.listening ? 'listening' : hasContent ? 'happy' : 'idle';
   const status = thinking
     ? 'Drawing your flowchart…'
     : speech.listening
-      ? 'Go ahead, I’m listening…'
-      : 'Hold your Wispr Flow hotkey and talk';
+      ? (hasContent ? 'Listening… tap the arrow or press Enter to draw' : 'Go ahead, speak your flow out loud…')
+      : (hasContent ? 'Tap the arrow or press Enter to draw' : 'Tap mic to speak, or type your steps');
 
   const display = speech.interim ? `${text}${text ? ' ' : ''}${speech.interim}` : text;
 
@@ -86,7 +95,7 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
       aria-modal="true"
       aria-label="Voice session"
     >
-      <div className="relative flex w-full max-w-[460px] flex-col items-center overflow-hidden rounded-[32px] border border-white/10 bg-ink-900/90 px-6 pb-6 pt-5 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] animate-rise">
+      <div className="relative flex w-full max-w-[480px] flex-col items-center overflow-hidden rounded-[32px] border border-white/10 bg-ink-900/90 px-6 pb-6 pt-5 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] animate-rise">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(113,88,232,0.25),transparent)]" />
 
         <header className="relative flex w-full items-center justify-between">
@@ -115,7 +124,6 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
           ref={textareaRef}
           rows={2}
           value={display}
-          readOnly={speech.listening}
           onChange={(e) => {
             setText(e.target.value);
             levelRef.current = 0.9;
@@ -126,11 +134,11 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
               submit();
             }
           }}
-          placeholder="Describe the steps of your process…"
+          placeholder="e.g. Open the door, switch on the light, sit on the sofa, switch on the TV…"
           className="relative w-full resize-none bg-transparent text-center text-lg font-semibold leading-snug text-ink-100 placeholder-ink-500 focus:outline-none"
         />
 
-        {!text && !speech.listening && (
+        {!hasContent && !speech.listening && (
           <div className="relative mt-3 flex flex-col gap-1.5">
             {EXAMPLES.map((ex) => (
               <button key={ex} onClick={() => setText(ex)} className="rounded-full px-3 py-1 text-[11px] text-ink-400 transition-colors hover:bg-white/5 hover:text-ink-200">
@@ -149,7 +157,7 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
               usedMicRef.current = false;
               textareaRef.current?.focus();
             }}
-            disabled={!text}
+            disabled={!hasContent}
             className="grid h-11 w-11 place-items-center rounded-full border border-white/10 text-ink-300 transition-colors hover:bg-white/5 disabled:opacity-30"
             aria-label="Clear text"
             title="Clear"
@@ -181,7 +189,7 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
 
           <button
             onClick={submit}
-            disabled={!text.trim() || thinking}
+            disabled={!hasContent || thinking}
             className="grid h-11 w-11 place-items-center rounded-full bg-accent-500 text-white transition-colors hover:bg-accent-400 disabled:bg-white/5 disabled:text-ink-500"
             aria-label="Build flowchart"
             title="Build flowchart (Enter)"
@@ -191,7 +199,7 @@ export function VoiceSession({ onClose, onSubmit }: VoiceSessionProps) {
         </div>
 
         <p className="relative mt-4 text-center text-[11px] leading-relaxed text-ink-500">
-          Wispr Flow types straight into this box. No Wispr? Tap the mic.
+          Wispr Flow types straight into this box. You can also talk directly into the mic!
         </p>
       </div>
     </div>
