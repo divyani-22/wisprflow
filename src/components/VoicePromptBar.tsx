@@ -82,8 +82,14 @@ export const VoicePromptBar: React.FC<VoicePromptBarProps> = ({
     'Simulate workflow',
     'If user is authenticated go to Dashboard, otherwise go to Login',
     'Auto align canvas',
-    'Landing page, user login, cart, stripe payment, and database',
     'Undo that',
+  ];
+
+  const industryTemplates = [
+    { label: 'Uber Dispatch', prompt: 'Architect Uber driver dispatch engine' },
+    { label: 'AI Agent + RAG', prompt: 'Architect Autonomous Voice AI Agent with RAG' },
+    { label: 'Netflix CDN', prompt: 'Architect Netflix video transcoding pipeline' },
+    { label: 'FinTech Engine', prompt: 'Architect FinTech trading engine' },
   ];
 
   return (
@@ -120,7 +126,7 @@ export const VoicePromptBar: React.FC<VoicePromptBarProps> = ({
             type="text"
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            placeholder="Tell me what you need (e.g. 'I need a landing page, user login, cart, stripe payment, and database')..."
+            placeholder="Tell me what you need (e.g. 'Architect Uber dispatch' or 'If user logged in go to Dashboard, otherwise Login')..."
             className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all shadow-inner"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
@@ -142,10 +148,10 @@ export const VoicePromptBar: React.FC<VoicePromptBarProps> = ({
 
       {/* Suggestion Chips & Status message */}
       <div className="max-w-4xl mx-auto mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] text-slate-400 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-400" />
-            Try speaking:
+            Voice Prompts:
           </span>
           {sampleChips.map((chip, i) => (
             <button
@@ -155,6 +161,21 @@ export const VoicePromptBar: React.FC<VoicePromptBarProps> = ({
               className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-violet-500/40 transition-all font-mono"
             >
               {chip}
+            </button>
+          ))}
+
+          <span className="text-slate-600 text-xs mx-1">|</span>
+
+          <span className="text-[11px] text-violet-400 font-semibold">Templates:</span>
+          {industryTemplates.map((t, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleChipClick(t.prompt)}
+              className="text-[11px] px-2.5 py-0.5 rounded-full bg-violet-950/40 hover:bg-violet-900/60 text-violet-200 border border-violet-800/40 hover:border-violet-600 transition-all font-mono shadow-sm"
+              title={`Load: ${t.prompt}`}
+            >
+              ⚡ {t.label}
             </button>
           ))}
         </div>

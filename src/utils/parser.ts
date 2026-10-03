@@ -1,4 +1,5 @@
 import type { ArchitectureNodeData, ArchitectureSystem, NodeType } from '../types/architecture';
+import { INDUSTRY_TEMPLATES } from '../data/industryTemplates';
 
 export interface ParseResult {
   action: 
@@ -70,7 +71,38 @@ export function parseVoiceCommand(
   const text = rawTranscript.trim();
   const lower = text.toLowerCase();
 
-  // 1. Voice Command: SIMULATE
+  // 0. High-Profile Industry Architecture Templates
+  if (lower.includes('uber') || lower.includes('dispatch') || lower.includes('ride match')) {
+    return {
+      action: 'flowchart_generated',
+      message: 'Synthesized Uber Real-Time Driver Dispatch Engine with H3 Geospatial indexing!',
+      updatedSystem: JSON.parse(JSON.stringify(INDUSTRY_TEMPLATES.uber)),
+    };
+  }
+
+  if (lower.includes('rag') || (lower.includes('ai') && lower.includes('agent')) || lower.includes('vector db')) {
+    return {
+      action: 'flowchart_generated',
+      message: 'Synthesized Autonomous Voice AI Agent with RAG & Vector Memory!',
+      updatedSystem: JSON.parse(JSON.stringify(INDUSTRY_TEMPLATES.rag)),
+    };
+  }
+
+  if (lower.includes('netflix') || lower.includes('streaming pipeline') || lower.includes('transcod')) {
+    return {
+      action: 'flowchart_generated',
+      message: 'Synthesized Netflix Video Transcoding & Edge CDN Distribution Architecture!',
+      updatedSystem: JSON.parse(JSON.stringify(INDUSTRY_TEMPLATES.netflix)),
+    };
+  }
+
+  if (lower.includes('fintech') || lower.includes('trading') || lower.includes('orderbook') || lower.includes('fraud engine')) {
+    return {
+      action: 'flowchart_generated',
+      message: 'Synthesized FinTech Ultra-Low-Latency Trading & Fraud Engine!',
+      updatedSystem: JSON.parse(JSON.stringify(INDUSTRY_TEMPLATES.fintech)),
+    };
+  }
   if (lower.includes('simulate') || lower.includes('run test') || lower.includes('test flow') || lower.includes('start simulation')) {
     return {
       action: 'simulate',
