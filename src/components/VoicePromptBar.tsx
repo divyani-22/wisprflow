@@ -79,10 +79,11 @@ export const VoicePromptBar: React.FC<VoicePromptBarProps> = ({
   };
 
   const sampleChips = [
+    'Simulate workflow',
+    'If user is authenticated go to Dashboard, otherwise go to Login',
+    'Auto align canvas',
     'Landing page, user login, cart, stripe payment, and database',
-    'Customer inquiry, AI chatbot, ticket triage, and admin panel',
-    'User signup, email verification, onboarding survey, and dashboard',
-    'Add an email receipt sender',
+    'Undo that',
   ];
 
   return (

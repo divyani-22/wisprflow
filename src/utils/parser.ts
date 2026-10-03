@@ -1,14 +1,29 @@
 import type { ArchitectureNodeData, ArchitectureSystem, NodeType } from '../types/architecture';
 
 export interface ParseResult {
-  action: 'flowchart_generated' | 'node_added' | 'preset_loaded';
+  action: 
+    | 'flowchart_generated' 
+    | 'branch_generated' 
+    | 'node_added' 
+    | 'undo' 
+    | 'clear' 
+    | 'simulate' 
+    | 'auto_layout' 
+    | 'delete_node' 
+    | 'change_color'
+    | 'unknown';
   message: string;
-  updatedSystem: ArchitectureSystem;
+  updatedSystem?: ArchitectureSystem;
+  targetId?: string;
+  targetColor?: string;
 }
 
-// Helper to determine node type and icon styling based on keywords
+// Detect node type, tech, and description
 function detectTypeAndTech(item: string): { type: NodeType; tech: string; desc: string } {
   const s = item.toLowerCase();
+  if (s.includes('if') || s.includes('check') || s.includes('verify') || s.includes('valid') || s.includes('decision')) {
+    return { type: 'decision', tech: 'Decision Logic', desc: 'Evaluates condition to route downstream branches.' };
+  }
   if (s.includes('db') || s.includes('database') || s.includes('postgres') || s.includes('mongo') || s.includes('sql') || s.includes('storage')) {
     return { type: 'database', tech: 'Database / Storage', desc: 'Stores and persists application records.' };
   }
@@ -33,24 +48,18 @@ function detectTypeAndTech(item: string): { type: NodeType; tech: string; desc: 
   return { type: 'service', tech: 'Application Logic', desc: 'Handles processing and business rules.' };
 }
 
-// Extract human items from phrases like "I need a landing page, a checkout, and a database"
+// Extract human items from speech
 function extractItemsFromSpeech(text: string): string[] {
-  // Clean filler words
-  let clean = text
+  const clean = text
     .replace(/^(i need|i want|create|build|make|generate|design|can you make|give me)\s*(a|an|the)?/i, '')
     .trim();
 
-  // Split by common natural language delimiters: "then", "and then", "followed by", commas, "and", "connected to"
   const rawParts = clean
     .split(/\s*(?:,|and then|then|followed by|connected to|\band\b)\s*/i)
     .map(p => p.replace(/^(a|an|the)\s+/i, '').trim())
     .filter(p => p.length > 1 && !['it', 'all', 'system', 'website', 'app', 'flowchart'].includes(p.toLowerCase()));
 
-  if (rawParts.length >= 2) {
-    return rawParts;
-  }
-
-  // Fallback: split by commas or words
+  if (rawParts.length >= 2) return rawParts;
   return clean.split(',').map(s => s.trim()).filter(s => s.length > 0);
 }
 
@@ -61,13 +70,169 @@ export function parseVoiceCommand(
   const text = rawTranscript.trim();
   const lower = text.toLowerCase();
 
-  // If user says "Add [item]" to the existing flowchart
-  if ((lower.startsWith('add') || lower.startsWith('insert')) && !lower.includes('landing page and')) {
+  // 1. Voice Command: SIMULATE
+  if (lower.includes('simulate') || lower.includes('run test') || lower.includes('test flow') || lower.includes('start simulation')) {
+    return {
+      action: 'simulate',
+      message: 'Running live workflow simulation...',
+    };
+  }
+
+  // 2. Voice Command: UNDO
+  if (lower === 'undo' || lower === 'undo that' || lower.includes('revert')) {
+    return {
+      action: 'undo',
+      message: 'Undone last change.',
+    };
+  }
+
+  // 3. Voice Command: CLEAR
+  if (lower === 'clear' || lower === 'clear canvas' || lower.includes('reset canvas') || lower === 'start over') {
+    return {
+      action: 'clear',
+      message: 'Canvas cleared.',
+    };
+  }
+
+  // 4. Voice Command: AUTO ALIGN / ORGANIZE
+  if (lower.includes('align') || lower.includes('organize') || lower.includes('beautify') || lower.includes('tidy')) {
+    return {
+      action: 'auto_layout',
+      message: 'Auto-aligned all steps and connections.',
+    };
+  }
+
+  // 5. Voice Command: CHANGE COLOR
+  const colorMatches: Record<string, string> = {
+    purple: '#a855f7',
+    blue: '#3b82f6',
+    cyan: '#06b6d4',
+    emerald: '#10b981',
+    green: '#10b981',
+    amber: '#f59e0b',
+    yellow: '#f59e0b',
+    pink: '#ec4899',
+    red: '#ef4444',
+  };
+  for (const [colorName, hex] of Object.entries(colorMatches)) {
+    if (lower.includes(`make arrow ${colorName}`) || lower.includes(`make arrows ${colorName}`) || lower.includes(`color ${colorName}`)) {
+      return {
+        action: 'change_color',
+        message: `Changed arrow colors to ${colorName}.`,
+        targetColor: hex,
+      };
+    }
+  }
+
+  // 6. Voice Command: DELETE [NAME]
+  if (lower.startsWith('delete ') || lower.startsWith('remove ')) {
+    const targetName = lower.replace(/^(delete|remove)\s*(step|node|the|a)?\s*/i, '').trim();
+    const matchedNode = currentSystem.nodes.find(n => n.data.label.toLowerCase().includes(targetName));
+    if (matchedNode) {
+      return {
+        action: 'delete_node',
+        message: `Deleted "${matchedNode.data.label}".`,
+        targetId: matchedNode.id,
+      };
+    }
+  }
+
+  // 7. Feature 2: SMART CONDITIONAL / BRANCHING (IF / ELSE)
+  if (lower.includes('if ') && (lower.includes('else') || lower.includes('otherwise'))) {
+    // Example: "If user is logged in go to Dashboard, otherwise go to Login page"
+    const match = text.match(/if\s+(.*?)\s+(?:then\s+)?(?:go\s+to\s+)?(.*?)\s+(?:else|otherwise)\s+(?:go\s+to\s+)?(.*)/i);
+    if (match) {
+      const conditionText = match[1].trim();
+      const trueBranchText = match[2].trim();
+      const falseBranchText = match[3].trim();
+
+      const decisionId = `decision-${Date.now()}`;
+      const trueId = `branch-true-${Date.now()}`;
+      const falseId = `branch-false-${Date.now()}`;
+
+      const decisionNode = {
+        id: decisionId,
+        type: 'custom',
+        position: { x: 100, y: 160 },
+        data: {
+          label: `Check: ${conditionText.charAt(0).toUpperCase() + conditionText.slice(1)}?`,
+          type: 'decision' as NodeType,
+          tech: 'Condition Evaluator',
+          description: `Evaluates if "${conditionText}" evaluates to true or false.`,
+          latency: '2ms',
+          throughput: 'Real-time',
+        } as ArchitectureNodeData,
+      };
+
+      const trueNode = {
+        id: trueId,
+        type: 'custom',
+        position: { x: 420, y: 60 },
+        data: {
+          label: trueBranchText.charAt(0).toUpperCase() + trueBranchText.slice(1),
+          type: detectTypeAndTech(trueBranchText).type,
+          tech: 'True Branch',
+          description: `Success route when "${conditionText}" is met.`,
+          latency: '15ms',
+          throughput: 'Active',
+        } as ArchitectureNodeData,
+      };
+
+      const falseNode = {
+        id: falseId,
+        type: 'custom',
+        position: { x: 420, y: 260 },
+        data: {
+          label: falseBranchText.charAt(0).toUpperCase() + falseBranchText.slice(1),
+          type: detectTypeAndTech(falseBranchText).type,
+          tech: 'False Branch',
+          description: `Fallback route when "${conditionText}" is not met.`,
+          latency: '15ms',
+          throughput: 'Active',
+        } as ArchitectureNodeData,
+      };
+
+      const edges = [
+        {
+          id: `e-yes-${Date.now()}`,
+          source: decisionId,
+          target: trueId,
+          label: 'Yes / True',
+          animated: true,
+          style: { stroke: '#10b981', strokeWidth: 2 },
+        },
+        {
+          id: `e-no-${Date.now()}`,
+          source: decisionId,
+          target: falseId,
+          label: 'No / False',
+          animated: true,
+          style: { stroke: '#ef4444', strokeWidth: 2 },
+        },
+      ];
+
+      return {
+        action: 'branch_generated',
+        message: `Created Decision Diamond with 2 branches: "${trueNode.data.label}" & "${falseNode.data.label}"`,
+        updatedSystem: {
+          id: `branch-flow-${Date.now()}`,
+          name: `Condition: ${conditionText}`,
+          description: `Branching flowchart based on condition: "${conditionText}"`,
+          nodes: [decisionNode, trueNode, falseNode],
+          edges,
+          specMarkdown: `# Conditional Decision Workflow: ${conditionText}\n\n1. **Evaluation**: Checks if \`${conditionText}\` is satisfied.\n2. **Branch True**: Routes to ${trueNode.data.label}.\n3. **Branch False**: Routes to ${falseNode.data.label}.\n`,
+          mermaidCode: `graph LR\n    Decision{"${conditionText}?"} -->|Yes| TrueNode["${trueNode.data.label}"]\n    Decision -->|No| FalseNode["${falseNode.data.label}"]\n`,
+        },
+      };
+    }
+  }
+
+  // 8. ADD A SINGLE STEP
+  if ((lower.startsWith('add ') || lower.startsWith('insert ')) && !lower.includes('landing page and')) {
     const itemName = text.replace(/^(add|insert)\s*(a|an|the)?\s*/i, '').trim();
     const { type, tech, desc } = detectTypeAndTech(itemName);
     const newId = `node-${Date.now()}`;
 
-    // Place it to the right of the last node
     const lastNode = currentSystem.nodes[currentSystem.nodes.length - 1];
     const newX = lastNode ? lastNode.position.x + 280 : 100;
     const newY = lastNode ? lastNode.position.y : 200;
@@ -99,25 +264,21 @@ export function parseVoiceCommand(
     }
 
     const updatedNodes = [...currentSystem.nodes, newNode];
-    const updatedSystem: ArchitectureSystem = {
-      ...currentSystem,
-      nodes: updatedNodes,
-      edges: newEdges,
-      specMarkdown: currentSystem.specMarkdown + `\n\n### Step: ${newNode.data.label}\n- **Role**: ${desc}\n- **Category**: ${tech}\n`,
-      mermaidCode: currentSystem.mermaidCode + `    ${lastNode ? lastNode.id : 'Start'} --> ${newId}["${newNode.data.label}"]\n`
-    };
-
     return {
       action: 'node_added',
       message: `Added "${newNode.data.label}" to your flowchart!`,
-      updatedSystem,
+      updatedSystem: {
+        ...currentSystem,
+        nodes: updatedNodes,
+        edges: newEdges,
+        specMarkdown: currentSystem.specMarkdown + `\n\n### Step: ${newNode.data.label}\n- **Role**: ${desc}\n- **Category**: ${tech}\n`,
+        mermaidCode: currentSystem.mermaidCode + `    ${lastNode ? lastNode.id : 'Start'} --> ${newId}["${newNode.data.label}"]\n`
+      },
     };
   }
 
-  // Otherwise: Build a brand new custom flowchart from what the user said!
+  // 9. BUILD FULL FLOWCHART FROM MULTI-STEP SENTENCE
   const items = extractItemsFromSpeech(text);
-
-  // If user spoke a single generic sentence, default to meaningful steps
   const steps = items.length >= 2 ? items : [
     'User Request',
     text || 'Core Processing',
@@ -128,8 +289,6 @@ export function parseVoiceCommand(
   const nodes = steps.map((item, index) => {
     const { type, tech, desc } = detectTypeAndTech(item);
     const label = item.charAt(0).toUpperCase() + item.slice(1);
-    
-    // Grid layout: 3 nodes per row so it looks clean and readable
     const row = Math.floor(index / 3);
     const col = index % 3;
     const x = 60 + col * 320;
@@ -150,7 +309,6 @@ export function parseVoiceCommand(
     };
   });
 
-  // Connect Step 1 -> Step 2 -> Step 3 ...
   const edges = [];
   for (let i = 0; i < nodes.length - 1; i++) {
     edges.push({
@@ -163,34 +321,17 @@ export function parseVoiceCommand(
     });
   }
 
-  // Generate clean readable Markdown
-  let markdown = `# Flowchart & Technical Spec: ${text.slice(0, 40)}...\n\n`;
-  markdown += `**Spoken Request**: *"${text}"*\n\n## Sequential Flow Steps:\n`;
-  steps.forEach((step, idx) => {
-    markdown += `${idx + 1}. **${step.toUpperCase()}**: Processes data and routes to Step ${idx + 2 <= steps.length ? idx + 2 : 'Complete'}.\n`;
-  });
-
-  // Generate Mermaid code
-  let mermaid = 'graph LR\n';
-  steps.forEach((step, idx) => {
-    if (idx < steps.length - 1) {
-      mermaid += `    Node_${idx + 1}["${step}"] --> Node_${idx + 2}["${steps[idx + 1]}"]\n`;
-    }
-  });
-
-  const updatedSystem: ArchitectureSystem = {
-    id: `custom-flow-${Date.now()}`,
-    name: text.length > 25 ? text.slice(0, 25) + '...' : text,
-    description: `Flowchart generated from: "${text}"`,
-    nodes,
-    edges,
-    specMarkdown: markdown,
-    mermaidCode: mermaid,
-  };
-
   return {
     action: 'flowchart_generated',
     message: `Generated flowchart with ${nodes.length} connected steps!`,
-    updatedSystem,
+    updatedSystem: {
+      id: `custom-flow-${Date.now()}`,
+      name: text.length > 25 ? text.slice(0, 25) + '...' : text,
+      description: `Flowchart generated from: "${text}"`,
+      nodes,
+      edges,
+      specMarkdown: `# Flowchart: ${text}\n`,
+      mermaidCode: `graph LR\n`,
+    },
   };
 }

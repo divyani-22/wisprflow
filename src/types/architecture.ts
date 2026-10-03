@@ -1,4 +1,4 @@
-export type NodeType = 'client' | 'gateway' | 'service' | 'database' | 'cache' | 'queue' | 'ai';
+export type NodeType = 'client' | 'gateway' | 'service' | 'database' | 'cache' | 'queue' | 'ai' | 'decision';
 
 export interface ArchitectureNodeData {
   label: string;
@@ -7,8 +7,9 @@ export interface ArchitectureNodeData {
   tech?: string;
   latency?: string;
   throughput?: string;
-  status?: 'active' | 'scaling' | 'healthy' | 'idle';
+  status?: 'active' | 'scaling' | 'healthy' | 'idle' | 'simulating' | 'success';
   endpoints?: string[];
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 
@@ -28,6 +29,7 @@ export interface ArchitectureSystem {
     target: string;
     label?: string;
     animated?: boolean;
+    type?: string;
     style?: { stroke?: string; strokeWidth?: number; strokeDasharray?: string };
   }[];
   specMarkdown: string;

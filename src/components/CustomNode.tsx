@@ -8,7 +8,9 @@ import {
   Globe, 
   Smartphone, 
   Cpu, 
-  Radio
+  Radio,
+  GitBranch,
+  CheckCircle2
 } from 'lucide-react';
 import type { ArchitectureNodeData } from '../types/architecture';
 
@@ -20,6 +22,7 @@ const iconMap: Record<string, React.ElementType> = {
   cache: Zap,
   queue: Layers,
   ai: Cpu,
+  decision: GitBranch,
 };
 
 const colorScheme: Record<string, {
@@ -78,6 +81,13 @@ const colorScheme: Record<string, {
     badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     iconColor: 'text-indigo-400',
   },
+  decision: {
+    border: 'border-yellow-500/60',
+    bg: 'bg-yellow-950/25',
+    glow: 'hover:shadow-[0_0_20px_rgba(234,179,8,0.35)]',
+    badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+    iconColor: 'text-yellow-400',
+  },
 };
 
 const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
@@ -86,11 +96,20 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
   const Icon = iconMap[nodeType] || Server;
   const theme = colorScheme[nodeType] || colorScheme.service;
 
+  const isSimulating = nodeData.status === 'simulating' || nodeData.isHighlighted;
+  const isSuccess = nodeData.status === 'success';
+
   return (
     <div
-      className={`min-w-[200px] max-w-[240px] rounded-xl p-3.5 backdrop-blur-md bg-slate-900/90 border transition-all duration-200 cursor-pointer shadow-lg ${
+      className={`min-w-[210px] max-w-[250px] rounded-xl p-3.5 backdrop-blur-md bg-slate-900/90 border transition-all duration-300 cursor-pointer shadow-lg relative ${
         theme.border
-      } ${theme.glow} ${selected ? 'ring-2 ring-violet-400 shadow-[0_0_25px_rgba(167,139,250,0.5)]' : ''}`}
+      } ${theme.glow} ${
+        selected ? 'ring-2 ring-violet-400 shadow-[0_0_25px_rgba(167,139,250,0.5)]' : ''
+      } ${
+        isSimulating ? 'ring-4 ring-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.7)] scale-105 border-emerald-400' : ''
+      } ${
+        isSuccess ? 'border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : ''
+      }`}
     >
       <Handle
         type="target"
@@ -114,7 +133,7 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
               {nodeData.label}
             </h4>
             <span className="text-[10px] text-slate-400 font-mono capitalize">
-              {nodeData.type}
+              {nodeType === 'decision' ? 'Branch / If-Else' : nodeData.type}
             </span>
           </div>
         </div>
@@ -131,14 +150,24 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
       </p>
 
       <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px]">
-        {nodeData.latency ? (
+        {isSimulating ? (
+          <span className="text-emerald-300 flex items-center gap-1 font-mono font-semibold animate-pulse">
+            <Radio className="w-2.5 h-2.5 text-emerald-400 animate-ping" />
+            Executing...
+          </span>
+        ) : isSuccess ? (
+          <span className="text-emerald-400 flex items-center gap-1 font-mono">
+            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+            200 OK
+          </span>
+        ) : nodeData.latency ? (
           <span className="text-slate-400 flex items-center gap-1 font-mono">
-            <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
+            <Radio className="w-2.5 h-2.5 text-emerald-400" />
             {nodeData.latency}
           </span>
         ) : (
           <span className="text-emerald-400 flex items-center gap-1 font-mono">
-            ● Active
+            ● Ready
           </span>
         )}
 
@@ -149,9 +178,11 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
         )}
       </div>
 
+      {/* Handles: Bottom and Right */}
       <Handle
         type="source"
         position={Position.Bottom}
+        id="bottom"
         className="!bg-violet-500 !border-slate-800"
       />
       <Handle
