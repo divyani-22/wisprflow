@@ -6,6 +6,7 @@ import {
   MiniMap,
   BackgroundVariant,
   MarkerType,
+  ConnectionMode,
   useReactFlow,
   type Node,
   type Edge,
@@ -94,7 +95,9 @@ export const ArchitectureCanvas: React.FC<ArchitectureCanvasProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onReconnect={onReconnect}
-        reconnectRadius={20}
+        connectionMode={ConnectionMode.Loose}
+        connectionRadius={35}
+        reconnectRadius={30}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={(_, node) => onNodeClick({ id: node.id, data: node.data as unknown as ArchitectureNodeData })}
         onEdgeClick={(_, edge) => onEdgeClick(edge)}

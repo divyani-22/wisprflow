@@ -143,12 +143,64 @@ export function detectTypeAndTech(item: string): { type: NodeType; tech: string;
   return { type: 'service', tech: 'Action Step', desc: `Executes "${capitalized}" step in sequence.` };
 }
 
+function findNodeMatch(query: string, nodes: ArchitectureSystem['nodes']) {
+  const q = query.trim().toLowerCase();
+  const stepMatch = q.match(/^(?:step\s*)?(\d+)$/i);
+  if (stepMatch) {
+    const num = parseInt(stepMatch[1], 10);
+    const byStep = nodes.find((n) => n.data.step === num);
+    if (byStep) return byStep;
+  }
+  const exact = nodes.find((n) => n.data.label.toLowerCase() === q);
+  if (exact) return exact;
+
+  const cleanQ = q.replace(/^(?:the|a|an)\s+/i, '');
+  return nodes.find((n) => {
+    const l = n.data.label.toLowerCase();
+    return l.includes(cleanQ) || cleanQ.includes(l.replace(/^(?:the|a|an)\s+/i, ''));
+  });
+}
+
 export function parseVoiceCommand(
   rawTranscript: string,
   currentSystem: ArchitectureSystem
 ): ParseResult {
   const text = rawTranscript.trim();
   const lower = text.toLowerCase();
+
+  // If user says "Connect [box A] to [box B]" or "Link [box A] to [box B]"
+  const connectMatch = text.match(/^(?:connect|link)\s+(.+?)\s+(?:to|with|and)\s+(.+)$/i);
+  if (connectMatch && currentSystem.nodes.length >= 2) {
+    const fromQuery = connectMatch[1].trim();
+    const toQuery = connectMatch[2].trim();
+    const sourceNode = findNodeMatch(fromQuery, currentSystem.nodes);
+    const targetNode = findNodeMatch(toQuery, currentSystem.nodes);
+
+    if (sourceNode && targetNode && sourceNode.id !== targetNode.id) {
+      const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${Date.now()}`;
+      const newEdge = {
+        id: edgeId,
+        source: sourceNode.id,
+        target: targetNode.id,
+        animated: true,
+        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+      };
+
+      const updatedEdges = [...currentSystem.edges, newEdge];
+      const updatedSystem: ArchitectureSystem = {
+        ...currentSystem,
+        edges: updatedEdges,
+        specMarkdown: currentSystem.specMarkdown + `\n- **Connected**: ${sourceNode.data.label} → ${targetNode.data.label}\n`,
+        mermaidCode: currentSystem.mermaidCode + `    Node_${sourceNode.data.step ?? 1}["${sourceNode.data.label}"] --> Node_${targetNode.data.step ?? 2}["${targetNode.data.label}"]\n`,
+      };
+
+      return {
+        action: 'node_added',
+        message: `Connected "${sourceNode.data.label}" to "${targetNode.data.label}"!`,
+        updatedSystem,
+      };
+    }
+  }
 
   // If user says "Add [item]" to the existing flowchart
   if (/^(add|insert)\b/i.test(lower)) {

@@ -11,18 +11,31 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
 
   return (
     <div
-      className={`node-enter group w-[232px] rounded-2xl border bg-ink-900/95 p-3 backdrop-blur transition-[border-color,box-shadow] duration-200 ${
-        selected ? 'border-accent-400/80' : 'border-white/[0.08] hover:border-white/20'
+      className={`node-enter group relative w-[232px] rounded-2xl border bg-ink-900/95 p-3 backdrop-blur transition-[border-color,box-shadow] duration-200 ${
+        selected ? 'border-accent-400/80 ring-2 ring-accent-400/30' : 'border-white/[0.08] hover:border-white/25'
       }`}
       style={{
         animationDelay: `${node.enterDelay ?? 0}ms`,
         boxShadow: selected
-          ? `0 0 0 4px rgba(139,116,248,0.15), 0 12px 32px -12px ${category.color}55`
+          ? `0 0 0 4px rgba(139,116,248,0.2), 0 12px 32px -12px ${category.color}66`
           : '0 10px 30px -14px rgba(0,0,0,0.7)',
       }}
     >
-      <Handle type="target" position={Position.Top} />
-      <Handle type="target" position={Position.Left} id="left" />
+      {/* Top handles */}
+      <Handle type="target" position={Position.Top} id="top" className="!cursor-crosshair" />
+      <Handle type="source" position={Position.Top} id="top-src" className="!cursor-crosshair" />
+
+      {/* Right handles */}
+      <Handle type="source" position={Position.Right} id="right" className="!cursor-crosshair" />
+      <Handle type="target" position={Position.Right} id="right-tgt" className="!cursor-crosshair" />
+
+      {/* Bottom handles */}
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!cursor-crosshair" />
+      <Handle type="target" position={Position.Bottom} id="bottom-tgt" className="!cursor-crosshair" />
+
+      {/* Left handles */}
+      <Handle type="target" position={Position.Left} id="left" className="!cursor-crosshair" />
+      <Handle type="source" position={Position.Left} id="left-src" className="!cursor-crosshair" />
 
       <div className="flex items-start gap-2.5">
         <div
@@ -57,9 +70,6 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
           ))}
         </div>
       )}
-
-      <Handle type="source" position={Position.Bottom} />
-      <Handle type="source" position={Position.Right} id="right" />
     </div>
   );
 };

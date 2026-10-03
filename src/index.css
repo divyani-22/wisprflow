@@ -77,24 +77,46 @@ body,
 }
 
 .react-flow__handle {
-  width: 9px;
-  height: 9px;
-  background: #151322;
-  border: 1.5px solid #8a86a6;
-  opacity: 0;
-  transition: transform 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+  width: 10px;
+  height: 10px;
+  background: #141124;
+  border: 2px solid #8b74f8;
+  border-radius: 9999px;
+  opacity: 0.6;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s, box-shadow 0.15s;
+  cursor: crosshair;
+  z-index: 10;
 }
-/* Connection dots only appear where they're useful */
+
+/* Generous click and touch target around each handle */
+.react-flow__handle::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 9999px;
+  cursor: crosshair;
+}
+
+/* Highlight connection points on hover or selection */
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle,
+.react-flow__handle:hover {
+  opacity: 1;
+  transform: scale(1.35);
+  background: #a855f7;
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.85);
+}
+
+/* When any connection is actively being dragged, illuminate all handles across all boxes */
+.react-flow.connecting .react-flow__handle,
 .react-flow__handle.connectingto,
 .react-flow__handle.connectingfrom {
-  opacity: 1;
-  border-color: #a996ff;
-}
-.react-flow__handle:hover {
+  opacity: 1 !important;
+  border-color: #ffffff !important;
+  background: #8b74f8 !important;
+  box-shadow: 0 0 14px rgba(139, 116, 248, 1);
   transform: scale(1.4);
-  background: #8b74f8;
 }
 
 .react-flow__edge-path {

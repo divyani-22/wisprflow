@@ -52,8 +52,29 @@ function routeEdges(nodes: Node[], edges: Edge[]): Edge[] {
     if (!a || !b) return e;
     const dx = b.x - a.x;
     const dy = b.y - a.y;
-    const sideways = dx > 120 && Math.abs(dx) > Math.abs(dy) * 0.8;
-    return { ...e, sourceHandle: sideways ? 'right' : null, targetHandle: sideways ? 'left' : null };
+
+    let sourceHandle = 'right';
+    let targetHandle = 'left';
+
+    if (Math.abs(dx) >= Math.abs(dy) * 0.8) {
+      if (dx >= 0) {
+        sourceHandle = 'right';
+        targetHandle = 'left';
+      } else {
+        sourceHandle = 'left';
+        targetHandle = 'right';
+      }
+    } else {
+      if (dy >= 0) {
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
+      } else {
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
+      }
+    }
+
+    return { ...e, sourceHandle, targetHandle };
   });
 }
 
@@ -156,8 +177,27 @@ export function App() {
   }, [setNodes, setEdges, clearSelection, notify]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(decorateEdge({ ...params, id: `e-${Date.now()}`, data: { manual: true } } as Edge), eds)),
-    [setEdges],
+    (params: Connection) => {
+      if (!params.source || !params.target || params.source === params.target) return;
+      setEdges((eds) => {
+        const exists = eds.some(
+          (e) =>
+            (e.source === params.source && e.target === params.target) ||
+            (e.source === params.target && e.target === params.source),
+        );
+        if (exists) return eds;
+        return addEdge(
+          decorateEdge({
+            ...params,
+            id: `e-${Date.now()}`,
+            data: { manual: true },
+          } as Edge),
+          eds,
+        );
+      });
+      notify('Boxes connected!');
+    },
+    [setEdges, notify],
   );
 
   const onReconnect = useCallback(
