@@ -9,7 +9,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'client-1',
         type: 'custom',
-        position: { x: 50, y: 180 },
+        position: { x: 65, y: 207 },
         data: {
           label: 'Next.js Web / Mobile',
           type: 'client',
@@ -23,7 +23,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'gateway-1',
         type: 'custom',
-        position: { x: 330, y: 180 },
+        position: { x: 429, y: 207 },
         data: {
           label: 'Kong API Gateway',
           type: 'gateway',
@@ -37,7 +37,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'auth-service',
         type: 'custom',
-        position: { x: 620, y: 50 },
+        position: { x: 806, y: 57 },
         data: {
           label: 'Auth & Identity Service',
           type: 'service',
@@ -51,7 +51,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'order-service',
         type: 'custom',
-        position: { x: 620, y: 220 },
+        position: { x: 806, y: 253 },
         data: {
           label: 'Order Processing Service',
           type: 'service',
@@ -65,7 +65,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'payment-queue',
         type: 'custom',
-        position: { x: 920, y: 220 },
+        position: { x: 1196, y: 253 },
         data: {
           label: 'Kafka Event Stream',
           type: 'queue',
@@ -79,7 +79,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'redis-cache',
         type: 'custom',
-        position: { x: 620, y: 390 },
+        position: { x: 806, y: 448 },
         data: {
           label: 'Redis Cluster Cache',
           type: 'cache',
@@ -92,7 +92,7 @@ export const PRESET_SYSTEMS: ArchitectureSystem[] = [
       {
         id: 'postgres-db',
         type: 'custom',
-        position: { x: 920, y: 390 },
+        position: { x: 1196, y: 448 },
         data: {
           label: 'Primary Postgres DB',
           type: 'database',
@@ -166,7 +166,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'voice-client',
         type: 'custom',
-        position: { x: 50, y: 180 },
+        position: { x: 65, y: 207 },
         data: {
           label: 'Wispr Flow Voice Ingress',
           type: 'client',
@@ -179,7 +179,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'audio-processor',
         type: 'custom',
-        position: { x: 330, y: 180 },
+        position: { x: 429, y: 207 },
         data: {
           label: 'Audio Frame Normalizer',
           type: 'service',
@@ -192,7 +192,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'whisper-engine',
         type: 'custom',
-        position: { x: 620, y: 70 },
+        position: { x: 806, y: 80 },
         data: {
           label: 'Wispr Speech Model',
           type: 'ai',
@@ -205,7 +205,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'agent-orchestrator',
         type: 'custom',
-        position: { x: 620, y: 260 },
+        position: { x: 806, y: 299 },
         data: {
           label: 'Agentic Core Engine',
           type: 'ai',
@@ -218,7 +218,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'vector-memory',
         type: 'custom',
-        position: { x: 920, y: 70 },
+        position: { x: 1196, y: 80 },
         data: {
           label: 'Milvus Vector Store',
           type: 'database',
@@ -231,7 +231,7 @@ The architecture is designed for **99.99% availability** with horizontal autosca
       {
         id: 'sse-streamer',
         type: 'custom',
-        position: { x: 920, y: 260 },
+        position: { x: 1196, y: 299 },
         data: {
           label: 'SSE Delta Dispatcher',
           type: 'gateway',

@@ -1,4 +1,10 @@
 import type { ArchitectureNodeData, ArchitectureSystem, NodeType } from '../types/architecture';
+import { EDGE_COLOR } from '../lib/categories';
+
+// Generated flows are laid out top-down, wrapping into a new column every few steps
+const STEPS_PER_COLUMN = 5;
+const COLUMN_GAP = 300;
+const ROW_GAP = 170;
 
 export interface ParseResult {
   action: 'flowchart_generated' | 'node_added' | 'preset_loaded';
@@ -15,7 +21,7 @@ function detectTypeAndTech(item: string): { type: NodeType; tech: string; desc: 
   if (s.includes('payment') || s.includes('stripe') || s.includes('checkout') || s.includes('billing')) {
     return { type: 'service', tech: 'Payment Engine', desc: 'Processes transactions and billing.' };
   }
-  if (s.includes('auth') || s.includes('login') || s.includes('signup') || s.includes('register') || s.includes('verification')) {
+  if (s.includes('auth') || s.includes('login') || s.includes('signup') || s.includes('register') || s.includes('verif')) {
     return { type: 'service', tech: 'Auth & Security', desc: 'Handles identity, tokens, and access control.' };
   }
   if (s.includes('email') || s.includes('notification') || s.includes('sms') || s.includes('alert')) {
@@ -36,13 +42,13 @@ function detectTypeAndTech(item: string): { type: NodeType; tech: string; desc: 
 // Extract human items from phrases like "I need a landing page, a checkout, and a database"
 function extractItemsFromSpeech(text: string): string[] {
   // Clean filler words
-  let clean = text
+  const clean = text
     .replace(/^(i need|i want|create|build|make|generate|design|can you make|give me)\s*(a|an|the)?/i, '')
     .trim();
 
   // Split by common natural language delimiters: "then", "and then", "followed by", commas, "and", "connected to"
   const rawParts = clean
-    .split(/\s*(?:,|and then|then|followed by|connected to|\band\b)\s*/i)
+    .split(/\s*(?:,|\band then\b|\bthen\b|\bfollowed by\b|\bconnected to\b|\band\b|->|→)\s*/i)
     .map(p => p.replace(/^(a|an|the)\s+/i, '').trim())
     .filter(p => p.length > 1 && !['it', 'all', 'system', 'website', 'app', 'flowchart'].includes(p.toLowerCase()));
 
@@ -62,15 +68,15 @@ export function parseVoiceCommand(
   const lower = text.toLowerCase();
 
   // If user says "Add [item]" to the existing flowchart
-  if ((lower.startsWith('add') || lower.startsWith('insert')) && !lower.includes('landing page and')) {
+  if (/^(add|insert)\b/.test(lower)) {
     const itemName = text.replace(/^(add|insert)\s*(a|an|the)?\s*/i, '').trim();
     const { type, tech, desc } = detectTypeAndTech(itemName);
     const newId = `node-${Date.now()}`;
 
-    // Place it to the right of the last node
+    // Place it directly below the last node
     const lastNode = currentSystem.nodes[currentSystem.nodes.length - 1];
-    const newX = lastNode ? lastNode.position.x + 280 : 100;
-    const newY = lastNode ? lastNode.position.y : 200;
+    const newX = lastNode ? lastNode.position.x : 0;
+    const newY = lastNode ? lastNode.position.y + ROW_GAP : 0;
 
     const newNode = {
       id: newId,
@@ -79,10 +85,8 @@ export function parseVoiceCommand(
       data: {
         label: itemName.charAt(0).toUpperCase() + itemName.slice(1),
         type,
-        tech,
         description: desc,
-        latency: '15ms',
-        throughput: '5k/s',
+        step: currentSystem.nodes.length + 1,
       } as ArchitectureNodeData,
     };
 
@@ -92,9 +96,8 @@ export function parseVoiceCommand(
         id: `e-${Date.now()}`,
         source: lastNode.id,
         target: newId,
-        label: 'Flows To',
         animated: true,
-        style: { stroke: '#a855f7', strokeWidth: 2 },
+        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
       });
     }
 
@@ -126,14 +129,13 @@ export function parseVoiceCommand(
   ];
 
   const nodes = steps.map((item, index) => {
-    const { type, tech, desc } = detectTypeAndTech(item);
+    const { type, desc } = detectTypeAndTech(item);
     const label = item.charAt(0).toUpperCase() + item.slice(1);
     
-    // Grid layout: 3 nodes per row so it looks clean and readable
-    const row = Math.floor(index / 3);
-    const col = index % 3;
-    const x = 60 + col * 320;
-    const y = 80 + row * 220;
+    const col = Math.floor(index / STEPS_PER_COLUMN);
+    const row = index % STEPS_PER_COLUMN;
+    const x = col * COLUMN_GAP;
+    const y = row * ROW_GAP;
 
     return {
       id: `step-${index + 1}`,
@@ -142,10 +144,8 @@ export function parseVoiceCommand(
       data: {
         label,
         type,
-        tech,
         description: desc,
-        latency: `${10 + index * 5}ms`,
-        throughput: 'Active',
+        step: index + 1,
       } as ArchitectureNodeData,
     };
   });
@@ -157,9 +157,8 @@ export function parseVoiceCommand(
       id: `edge-${i + 1}-${i + 2}`,
       source: nodes[i].id,
       target: nodes[i + 1].id,
-      label: `Step ${i + 1} ➔ ${i + 2}`,
       animated: true,
-      style: { stroke: '#a855f7', strokeWidth: 2 },
+      style: { stroke: EDGE_COLOR, strokeWidth: 2 },
     });
   }
 

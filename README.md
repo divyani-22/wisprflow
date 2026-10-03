@@ -15,10 +15,12 @@
 **VoiceArchitect** bridges the gap between spoken conceptual thinking and visual flowchart design. Instead of manually drawing boxes and dragging arrows, developers can dictate entire user workflows, website architectures, or microservices hands-free.
 
 ### Key Capabilities
+- 🤖 **Flo, the voice assistant**: Click the robot in the corner of the canvas to open a voice session. Hold your Wispr Flow hotkey and talk — the text lands in Flo's box and becomes a flowchart. No Wispr Flow? Tap the mic to use the browser's speech recognition.
 - 🗣️ **Voice-to-Flowchart Engine**: Speak your desired steps (e.g., *"I need a landing page, user login, cart, stripe payment, and database"*), and it instantly parses and renders a connected flowchart in real-time.
 - 🗺️ **Interactive Canvas**: Dynamic nodes with animated connection edges, mini-map, and drag-and-drop ergonomics powered by React Flow.
 - 🔗 **Full Linkage & Step Editor**: Click any arrow on the canvas to rewire connections, change labels, pick custom colors (Purple, Blue, Cyan, Emerald, Amber, Pink), adjust routing styles (Curved, 90° Step, Straight), or toggle animated pulses.
-- 💾 **One-Click Export**: High-resolution PNG canvas snapshot download.
+- 🧩 **Templates & History**: Start from Onboarding / Checkout / Support / Release templates; every flow you dictate is saved locally so you can jump back to it.
+- 💾 **Export**: High-resolution PNG download or copy the flow as Mermaid.
 
 ---
 
@@ -57,7 +59,7 @@ The following exact voice commands were spoken into Wispr Flow to construct work
 - **Frontend Core**: React 19, TypeScript, Vite
 - **Graph & Node Canvas**: `@xyflow/react` (React Flow)
 - **Styling & Theme**: Tailwind CSS, Lucide React Icons
-- **Export & Canvas Capture**: `html-to-image`, `canvas-confetti`
+- **Export & Canvas Capture**: `html-to-image`
 
 ---
 

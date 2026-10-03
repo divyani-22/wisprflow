@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
   BackgroundVariant,
+  MarkerType,
+  useReactFlow,
   type Node,
   type Edge,
   type OnNodesChange,
@@ -13,7 +15,9 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { CustomNode } from './CustomNode';
+import { Flo, type FloMood } from './Flo';
 import type { ArchitectureNodeData } from '../types/architecture';
+import { EDGE_COLOR, getCategory } from '../lib/categories';
 
 interface ArchitectureCanvasProps {
   nodes: Node[];
@@ -22,9 +26,36 @@ interface ArchitectureCanvasProps {
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   onReconnect: (oldEdge: Edge, newConnection: Connection) => void;
+  onNodeDragStop: () => void;
   onNodeClick: (node: { id: string; data: ArchitectureNodeData }) => void;
   onEdgeClick: (edge: Edge) => void;
+  onPaneClick: () => void;
+  onTalk: () => void;
+  floMood: FloMood;
+  /** Changes whenever a whole new flow is loaded, so the view re-fits */
+  layoutKey: string;
   canvasRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function FitOnChange({ layoutKey }: { layoutKey: string }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    const id = window.setTimeout(() => fitView({ padding: 0.25, duration: 500, maxZoom: 1.1 }), 60);
+    return () => window.clearTimeout(id);
+  }, [layoutKey, fitView]);
+  useEffect(() => {
+    let id = 0;
+    const onResize = () => {
+      window.clearTimeout(id);
+      id = window.setTimeout(() => fitView({ padding: 0.25, duration: 300, maxZoom: 1.1 }), 200);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [fitView]);
+  return null;
 }
 
 export const ArchitectureCanvas: React.FC<ArchitectureCanvasProps> = ({
@@ -34,14 +65,27 @@ export const ArchitectureCanvas: React.FC<ArchitectureCanvasProps> = ({
   onEdgesChange,
   onConnect,
   onReconnect,
+  onNodeDragStop,
   onNodeClick,
   onEdgeClick,
+  onPaneClick,
+  onTalk,
+  floMood,
+  layoutKey,
   canvasRef,
 }) => {
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+  const [hintVisible, setHintVisible] = useState(true);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setHintVisible(false), 9000);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  const isEmpty = nodes.length === 0;
 
   return (
-    <div ref={canvasRef} className="flex-1 h-full relative bg-[#060810] overflow-hidden">
+    <div ref={canvasRef} className="relative h-full flex-1 overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -51,58 +95,70 @@ export const ArchitectureCanvas: React.FC<ArchitectureCanvasProps> = ({
         onConnect={onConnect}
         onReconnect={onReconnect}
         reconnectRadius={20}
-        onNodeClick={(_, node) => {
-          onNodeClick({
-            id: node.id,
-            data: node.data as unknown as ArchitectureNodeData,
-          });
-        }}
-        onEdgeClick={(_, edge) => {
-          onEdgeClick(edge);
-        }}
+        onNodeDragStop={onNodeDragStop}
+        onNodeClick={(_, node) => onNodeClick({ id: node.id, data: node.data as unknown as ArchitectureNodeData })}
+        onEdgeClick={(_, edge) => onEdgeClick(edge)}
+        onPaneClick={onPaneClick}
         fitView
-        attributionPosition="bottom-left"
+        fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
+        minZoom={0.2}
         defaultEdgeOptions={{
-          animated: true,
-          style: { stroke: '#a855f7', strokeWidth: 2 },
+          type: 'smoothstep',
+          style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR, width: 16, height: 16 },
+          labelStyle: { fill: '#d5d2e5', fontSize: 11, fontWeight: 600 },
+          labelBgStyle: { fill: '#151322', stroke: 'rgba(255,255,255,0.08)' },
+          labelBgPadding: [8, 4],
+          labelBgBorderRadius: 8,
         }}
         className="touch-none"
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1.5}
-          color="#1e293b"
-        />
-        <Controls
-          className="!bg-slate-900 !border-slate-800 !rounded-xl !shadow-xl !overflow-hidden [&>button]:!bg-slate-900 [&>button]:!border-b [&>button]:!border-slate-800 [&>button]:!text-slate-200 hover:[&>button]:!bg-slate-800"
-        />
+        <FitOnChange layoutKey={layoutKey} />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#29253f" />
+        <Controls showInteractive={false} position="bottom-left" className="export-exclude" />
         <MiniMap
-          nodeColor={(node) => {
-            const data = node.data as unknown as ArchitectureNodeData;
-            switch (data.type) {
-              case 'gateway': return '#a855f7';
-              case 'service': return '#3b82f6';
-              case 'database': return '#10b981';
-              case 'cache': return '#f59e0b';
-              case 'queue': return '#06b6d4';
-              case 'client': return '#ec4899';
-              default: return '#64748b';
-            }
-          }}
-          maskColor="rgba(6, 8, 16, 0.75)"
-          className="!bg-slate-950/90 !border-slate-800 !rounded-xl !shadow-2xl"
+          position="top-right"
+          nodeColor={(node) => getCategory((node.data as unknown as ArchitectureNodeData).type).color}
+          nodeBorderRadius={8}
+          maskColor="rgba(9, 8, 15, 0.7)"
+          bgColor="#100e1a"
+          className="export-exclude !hidden lg:!block"
+          style={{ width: 160, height: 104 }}
           zoomable
           pannable
         />
       </ReactFlow>
 
-      {/* Floating Canvas Watermark / Hint */}
-      <div className="absolute bottom-5 right-5 pointer-events-none text-right hidden sm:block">
-        <div className="text-[11px] font-mono text-slate-400 bg-slate-950/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-800/80 shadow-lg flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-violet-400 animate-ping"></span>
-          <span>Click any connection arrow or drag its ends to rewire</span>
+      {isEmpty && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
+          <div className="max-w-sm text-center animate-rise">
+            <p className="text-lg font-semibold text-ink-100">Blank canvas</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-400">
+              Click Flo and say the steps of your process out loud, like
+              <span className="text-ink-200"> “signup, verify email, onboarding, dashboard”</span>.
+            </p>
+          </div>
         </div>
+      )}
+
+      {/* Flo, docked to the corner. Clicking opens a voice session. */}
+      <div className="export-exclude absolute bottom-5 right-5 z-10 flex items-end gap-2">
+        {(hintVisible || isEmpty) && floMood === 'idle' && (
+          <div className="relative mb-16 hidden rounded-2xl sm:block rounded-br-md border border-white/10 bg-ink-850/95 px-3.5 py-2 text-xs font-medium text-ink-200 shadow-xl animate-rise">
+            Tap me and talk through your flow
+          </div>
+        )}
+        <button
+          onClick={onTalk}
+          className="group relative rounded-3xl p-1 transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60"
+          aria-label="Talk to Flo — start a voice session"
+          title="Talk to Flo"
+        >
+          <span className="absolute inset-x-4 bottom-1 h-6 rounded-full bg-accent-500/40 blur-xl transition-opacity group-hover:opacity-100 opacity-60" />
+          <div className="animate-float">
+            <Flo mood={floMood} size={84} />
+          </div>
+        </button>
       </div>
     </div>
   );

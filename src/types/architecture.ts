@@ -9,6 +9,7 @@ export interface ArchitectureNodeData {
   throughput?: string;
   status?: 'active' | 'scaling' | 'healthy' | 'idle';
   endpoints?: string[];
+  step?: number;
   [key: string]: unknown;
 }
 
